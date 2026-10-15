@@ -16,13 +16,13 @@ jobs:
     name: Typecheck & build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Reads the exact pnpm version from package.json `packageManager`, so CI
       # and local development cannot drift.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -40,7 +40,7 @@ jobs:
     name: Shell scripts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # A doctor script that fails to parse is worse than no doctor script, and
       # these are the first thing a new self-hoster runs.
@@ -57,7 +57,7 @@ jobs:
     name: Compose config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Validate that the stack is internally consistent — service names,
       # variable interpolation, volume labels, and healthcheck syntax — without
@@ -82,7 +82,7 @@ jobs:
     name: Doctor runs clean
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The doctor must never crash, even on a machine that is entirely
       # unconfigured — that is exactly when someone runs it.
