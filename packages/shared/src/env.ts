@@ -88,6 +88,15 @@ const rawEnvSchema = z.object({
   COVE_FEDERATION_ALLOW_REPLIES: booleanish.default(false),
 
   COVE_VISIBILITY: z.enum(VISIBILITIES).default("public"),
+
+  /**
+   * Temporary gate for the publishing endpoints, until Phase 2 ships passkeys.
+   *
+   * Deliberately has no default: an empty token means publishing is *disabled*,
+   * not open. A self-host with an unauthenticated "create a post" endpoint on the
+   * public internet would be a genuinely nasty surprise.
+   */
+  COVE_ADMIN_TOKEN: z.string().trim().default(""),
 });
 
 export interface Env {
@@ -109,6 +118,7 @@ export interface Env {
   readonly federationEnabled: boolean;
   readonly federationAllowReplies: boolean;
   readonly visibility: (typeof VISIBILITIES)[number];
+  readonly adminToken: string;
 }
 
 export class EnvError extends Error {
@@ -178,7 +188,13 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     federationEnabled: env.COVE_FEDERATION_ENABLED,
     federationAllowReplies: env.COVE_FEDERATION_ALLOW_REPLIES,
     visibility: env.COVE_VISIBILITY,
+    adminToken: env.COVE_ADMIN_TOKEN,
   };
+}
+
+/** True when a publishing token has been configured. */
+export function canPublish(env: Env): boolean {
+  return env.adminToken.length >= 16;
 }
 
 /** True when we are running with the development fallback secret. */

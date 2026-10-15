@@ -37,6 +37,7 @@ export {
 export {
   EnvError,
   POWER_PRESETS,
+  canPublish,
   isUsingDevSecret,
   loadEnv,
   loadWorkerEnv,

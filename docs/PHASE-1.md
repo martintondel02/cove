@@ -1,7 +1,7 @@
 # Phase 1 — video core: progress
 
-**Status: in progress.** The hard half is done and verified: an upload can be turned
-into a published, playable HLS video, and the worker that does it is running.
+**Status: complete.** An upload goes in through the browser-facing stack and comes out
+as a playable video, verified by decoding a frame from the served HLS stream.
 
 Verified 2026-10-15 against the running stack (rootless Podman 5.8.7, Fedora 44).
 
@@ -46,20 +46,55 @@ sprite sheet, sprite index).
 The copy path takes seconds and loses no quality; the transcode path produced a correct
 ABR ladder with libx264 in the worker image.
 
-## Not done yet
+### The web half
 
-Remaining Phase 1 work, in the order it makes sense to do it:
+- **`POST /api/uploads`** — tus 1.0.0 resumable uploads via `@tus/server`, whose
+  `handleWeb(Request)` drops straight into a route handler. Auth is checked in the
+  wrapper, not in the library's callbacks, because those can only reject by throwing
+  (which yields a default 500 rather than an honest 401).
+- **`POST /api/posts`** — creates the post, the job row, and the queue entry. The post is
+  rolled back if queueing fails, since a post with no job is one that never appears.
+  `published_at` stays null until media exists, so a half-processed upload is never listed.
+- **`/media/*` served by Caddy** off the shared volume, with `handle` rather than
+  `handle_path`: stored paths already begin with `media/`, so a stored path *is* its URL.
+  Node never shovels video bytes through its event loop.
+- **`/watch/[slug]`** — hls.js, native HLS on Safari, real quality selection. A post that
+  exists but is still processing shows its job's progress rather than a 404.
+- **`/videos`** — the masonry library grid.
+- **`POST /api/views`** — watch time, keyed by a salted hash of a first-party cookie.
+  No IP is stored, and there is no third-party analytics anywhere in the project.
 
-1. **Upload endpoint** — tus 1.0.0 resumable uploads (`@tus/server`) into `data/uploads`,
-   then a `POST /api/posts` that creates the post and `media_jobs` row and enqueues the job.
-   Write endpoints need a guard until Phase 2's passkeys exist.
-2. **Serving media** — Caddy `file_server` over `./data/media` (the Caddyfile already
-   reserves `/media/*`), with cache headers for immutable segments.
-3. **Watch page** — `/watch/[slug]` with an HLS player (hls.js), chapters, quality selector.
-4. **Library grid** — `/videos` listing published posts.
-5. **View counting** — `view_events` writes and a stats-lite panel.
+Publishing is gated by `COVE_ADMIN_TOKEN`; **an unset token disables publishing** rather
+than leaving it open. Phase 2 replaces this with passkeys.
 
-Until (1) exists, jobs are enqueued by hand, which is how the verification above was run.
+## Verified end to end, through the running stack
+
+`ffmpeg` fixture → tus upload → create post → worker → Caddy → decode. 13/13 checks:
+
+| Check | Result |
+| --- | --- |
+| `POST /api/uploads` (tus create) | `Location: .../api/uploads/<id>` |
+| `PATCH` (tus bytes) | 204 |
+| `POST /api/posts` | 202, `{slug, url, job}` |
+| job progression | `queued 0%` → `ready 100%`, `published_at` set |
+| `GET /watch/<slug>` | 200, `<video>` + playlist + poster |
+| `GET /media/.../master.m3u8` | 200, `application/vnd.apple.mpegurl` |
+| `GET /media/.../v0/index.m3u8` | 200 |
+| `GET /media/.../seg_00000.m4s` | 200, 165,700 bytes |
+| Ranged request on a segment | **206** with `Content-Range`, `Accept-Ranges: bytes` |
+| `GET /media/.../poster.webp`, `sprite.vtt` | 200, correct types |
+| `GET /videos` | 200, lists the new video |
+| `POST /api/views` | 204, one `view_events` row, hash only |
+| Writes with no or wrong token | **401** on both endpoints |
+
+And the proof that matters, decoding a frame from the served stream:
+
+```
+ffmpeg -i http://localhost:8080/media/<post>/master.m3u8 -frames:v 1 /tmp/frame.jpg
+  → 640x360, 9,795 bytes
+ffprobe the same URL
+  → hls, h264 640x360, aac 1ch, duration 4.0s
+```
 
 ## Findings worth keeping
 
@@ -89,6 +124,15 @@ worth stating: **the decisions reviewed fine, and reality disagreed.**
    queues must be created explicitly. The research brief was wrong about `teamSize`.
 8. **`fps=1/10` looked like the cause of (4) and was not.** The filter is fine; producing
    zero frames is what failed. Worth remembering before "fixing" the wrong thing.
+9. **`:Z` is the wrong SELinux relabel for a volume several containers share.** It labels
+   the directory *privately for one container*, so with three mounters the last one wins and
+   the others are denied. The symptom was specific and confusing: the worker could write
+   `/data` while the web app and Caddy both got `EACCES`, on the same volume, as the same uid.
+   **`:z` (lowercase) is the shared form.** Phase 0's note recommending `:Z` was right for a
+   single container per path and wrong the moment three shared one.
+10. **pnpm's strictness keeps `drizzle-orm` out of the web app**, so route handlers cannot
+   import it. That is a feature: all SQL now lives in `packages/db`, which also means the
+   `private`-post rules sit next to the schema instead of being repeated per call site.
 
 ## Test suite
 

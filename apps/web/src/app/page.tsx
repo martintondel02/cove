@@ -63,11 +63,12 @@ export default async function HomePage() {
             {site.siteName}
           </div>
           <nav className="cove-nav" aria-label="Primary">
-            <a href="#feed" aria-current="page">
+            <a href="/" aria-current="page">
               Home
             </a>
+            <a href="/videos">Videos</a>
+            <a href="/upload">Upload</a>
             <a href="#identity">Identity</a>
-            <a href="#tokens">Theme</a>
           </nav>
           <div className="cove-header-spacer" />
           {site.handle ? (

@@ -83,8 +83,14 @@ services:
       # between `next dev` and the standalone production image.
       COVE_MIGRATIONS_DIR: /app/drizzle
     volumes:
-      # `:Z` relabels for SELinux, which is enforcing by default on Fedora.
-      - ./data:/data:Z
+      # `:z` — lowercase — is the SHARED SELinux relabel. It has to be shared,
+      # because three containers mount this path (web, worker, caddy).
+      #
+      # `:Z` is the *private* relabel: it labels the directory for one container
+      # only, so with several mounters the last one to start wins and the others
+      # get EACCES. That is exactly what happened here — the worker could write
+      # /data while the web app and Caddy were both denied.
+      - ./data:/data:z
     depends_on:
       db:
         condition: service_healthy
@@ -119,8 +125,8 @@ services:
       COVE_VIDEO_ENCODER: ${COVE_VIDEO_ENCODER:-libx264}
     volumes:
       # The same volume the web app serves from, so publishing a video is a rename
-      # rather than a copy.
-      - ./data:/data:Z
+      # rather than a copy. `:z` not `:Z` — see the note on the web service.
+      - ./data:/data:z
     depends_on:
       db:
         condition: service_healthy
@@ -156,6 +162,9 @@ services:
       COVE_ACME_EMAIL: ${COVE_ACME_EMAIL:-}
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      # Read-only access to the media volume, so /media/* can be served directly.
+      # `ro,z` — shared again, for the same reason as the other two.
+      - ./data:/srv/data:ro,z
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

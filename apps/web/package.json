@@ -13,9 +13,14 @@
     "@cove/db": "workspace:*",
     "@cove/shared": "workspace:*",
     "@cove/ui": "workspace:*",
+    "@tus/file-store": "2.1.1",
+    "@tus/server": "2.4.5",
+    "hls.js": "1.7.3",
     "next": "16.4.1",
+    "pg-boss": "12.38.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "tus-js-client": "4.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

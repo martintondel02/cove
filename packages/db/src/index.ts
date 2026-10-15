@@ -17,9 +17,20 @@ export {
 } from "./actors.ts";
 
 export {
+  deletePostById,
+  findViewablePostId,
+  insertPost,
+  slugExists,
+  type InsertPostInput,
+} from "./posts.ts";
+
+export {
   countFederatedPosts,
   getPostBySlug,
+  getPublishedVideoBySlug,
   listFederatedPosts,
+  listPublishedVideos,
+  type PublishedVideo,
 } from "./posts.ts";
 
 export {
