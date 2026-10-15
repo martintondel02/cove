@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Cove — live streaming overlay (optional).
+#
+#  Kept in a separate file so the default install stays three services. Live
+#  video is the largest operational risk in the project (ports, NAT, UDP) and
+#  the largest bandwidth cost, so it is opt-in:
+#
+#    podman compose -f compose.yaml -f compose.live.yaml --profile live up -d
+#
+#  MediaMTX requires host networking: bridge networking breaks WebRTC and RTSP
+#  UDP transport. See docs/PLAN.md §7.3 and docs/research/live-streaming.md.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  live:
+    image: docker.io/bluenviron/mediamtx:1-ffmpeg
+    profiles: [live]
+    restart: unless-stopped
+    # Non-negotiable for WebRTC. `MTX_WEBRTCADDITIONALHOSTS` below is the only
+    # supported alternative, and it must then be set to the public IP.
+    network_mode: host
+    environment:
+      MTX_RTMP: "yes"
+      MTX_RTMPADDRESS: ":1935"
+      MTX_SRT: "yes"
+      MTX_SRTADDRESS: ":8890"
+      MTX_HLS: "yes"
+      MTX_HLSADDRESS: ":8888"
+      MTX_HLSVARIANT: "lowLatency"
+      MTX_WEBRTC: "yes"
+      MTX_WEBRTCADDRESS: ":8889"
+      # Advertised to browsers for ICE. Leave empty on a public IP with host
+      # networking; set it to the public IP when behind NAT.
+      MTX_WEBRTCADDITIONALHOSTS: ${MTX_WEBRTCADDITIONALHOSTS:-}
+      MTX_WEBRTCLOCALTCPADDRESS: ":8189"
+      # Record for the VOD handoff, in fMP4. NOTE: the final part is lost on a
+      # crash, so recordPartDuration *is* the recovery point objective.
+      MTX_RECORD: "yes"
+      MTX_RECORDPATH: "/recordings/%path/%Y-%m-%d_%H-%M-%S-%f"
+      MTX_RECORDFORMAT: "fmp4"
+      MTX_RECORDPARTDURATION: "1s"
+      MTX_PLAYBACK: "yes"
+      MTX_PLAYBACKADDRESS: ":9996"
+      # Lock CORS down; the upstream default is `*`.
+      MTX_HLSALLOWORIGINS: ${COVE_SITE_URL:-http://localhost}
+      MTX_PLAYBACKALLOWORIGINS: ${COVE_SITE_URL:-http://localhost}
+    volumes:
+      - ./data/recordings:/recordings:Z
+    healthcheck:
+      test: ["CMD", "/mediamtx", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

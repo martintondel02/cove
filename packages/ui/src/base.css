@@ -1,0 +1,126 @@
+/* ============================================================================
+   Cove — base layer
+   ----------------------------------------------------------------------------
+   Global resets, the film-grain overlay, the small utility classes the layout
+   leans on, and the reduced-motion kill switch. Deliberately thin: anything
+   belonging to a component lives in components.css.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.55;
+  /* Crisper light-on-dark text; the dark-first canvas makes this visible. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Film grain.
+   A single fixed, non-interactive overlay. It exists to break up large flat
+   dark areas so the UI reads as warm film rather than as a flat admin panel.
+   Opacity comes from --grain, so presets (studio: 0) and the theme editor can
+   switch the texture off entirely. z-index 9999 keeps it above content. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Keyboard focus is visible everywhere, even on elements we do not own. The
+   zero-specificity :where() wrapper means component rings win without a fight. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────────── */
+
+/* Display face for titles and section headings. Optical sizing is what makes
+   the serif hold up at both 46px and 15px. */
+.cove-serif {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -.015em;
+}
+
+.cove-muted {
+  color: var(--text-muted);
+}
+
+.cove-faint {
+  color: var(--text-faint);
+}
+
+/* Tabular numerals. Every counter, duration, view count and timestamp uses
+   this so digits do not jitter as values change. */
+.cove-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Comfortable line length for prose surfaces. */
+.cove-measure {
+  max-width: var(--measure);
+}
+
+/* Mixed media feeds (16:9 video next to 9:16 reels) leave dead space in a
+   uniform grid, so the feed is CSS-columns masonry: items keep their own
+   aspect ratio and pack tightly. */
+.cove-masonry {
+  columns: 3;
+  column-gap: 22px;
+}
+
+.cove-masonry > * {
+  break-inside: avoid;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 1024px) {
+  .cove-masonry {
+    columns: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .cove-masonry {
+    columns: 1;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   One global switch rather than a per-component opt-out, so nothing can
+   forget it. Durations collapse; the end state of every transition remains. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

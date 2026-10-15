@@ -1,0 +1,360 @@
+/* ============================================================================
+   Cove — primitive styles
+   ----------------------------------------------------------------------------
+   The components in src/components/ are markup-only (no inline style objects
+   for anything that has a :hover/:focus state, since those cannot be expressed
+   inline). Their styles live here, scoped under .cove-* class names, and are
+   pulled in by tokens.css so consumers still need exactly one import.
+   ========================================================================== */
+
+/* ── Button ──────────────────────────────────────────────────────────────── */
+
+.cove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: -.005em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  /* Transform-only motion: cheap to composite, and it reads as "spring" with
+     the shared easing curve. */
+  transition:
+    transform var(--dur-1) var(--ease),
+    background-color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease),
+    box-shadow var(--dur-1) var(--ease);
+}
+
+.cove-btn--sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+}
+
+.cove-btn--md {
+  height: 40px;
+  padding: 0 var(--space-4);
+  font-size: 14px;
+}
+
+.cove-btn:hover {
+  transform: translateY(-1px);
+}
+
+.cove-btn:active {
+  transform: translateY(0) scale(.985);
+}
+
+.cove-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Disabled is a state, not a variant: the same rules apply to <button disabled>
+   and to a link marked aria-disabled. */
+.cove-btn:disabled,
+.cove-btn[aria-disabled="true"] {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cove-btn--primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-1);
+}
+
+.cove-btn--primary:hover {
+  background: var(--accent-soft);
+}
+
+.cove-btn--ghost {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.cove-btn--ghost:hover {
+  background: var(--overlay);
+}
+
+.cove-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.cove-btn--quiet:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+
+.cove-card {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition:
+    transform var(--dur-2) var(--ease),
+    box-shadow var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease);
+}
+
+/* Lift on hover. The amount lives in --card-lift so the `cardStyle` theme knob
+   can flatten it without touching this rule. */
+.cove-card--interactive:hover {
+  transform: translateY(var(--card-lift));
+  border-color: var(--hairline-strong);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Cards whose inner link receives keyboard focus get the same treatment, so a
+   wrapped MediaCard is never a dead end for keyboard users. */
+.cove-card--interactive:focus-within {
+  border-color: var(--hairline-strong);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.cove-card--padded {
+  padding: var(--card-pad-block) var(--card-pad-inline) var(--card-pad-bottom);
+}
+
+.cove-card__body {
+  padding: var(--card-pad-block) var(--card-pad-inline) var(--card-pad-bottom);
+}
+
+/* ── MediaCard ───────────────────────────────────────────────────────────── */
+
+.cove-mediacard {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cove-mediacard__title {
+  margin: 0 0 6px;
+  font-family: var(--font-ui);
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+}
+
+.cove-mediacard__meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  /* Durations, dates and view counts sit in this row: keep the digits still. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ambient media frame.
+   Two radial blooms (fed by the dominant colours extracted at ingest time) over
+   a dark linear base. The linear base is what keeps the frame from looking
+   broken while media is loading or missing, and what keeps overlaid text
+   readable whatever the extracted colours turn out to be. */
+.cove-media {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(100% 120% at 20% 0%, var(--cove-amb-from, #39465a), transparent 60%),
+    radial-gradient(100% 120% at 90% 100%, var(--cove-amb-to, #6d4433), transparent 62%),
+    linear-gradient(150deg, #242b34, #11151a);
+}
+
+.cove-media--16x9 {
+  aspect-ratio: 16 / 9;
+}
+
+.cove-media--4x5 {
+  aspect-ratio: 4 / 5;
+}
+
+.cove-media--9x16 {
+  aspect-ratio: 9 / 16;
+}
+
+.cove-media__content {
+  position: absolute;
+  inset: 0;
+}
+
+.cove-media__content > :where(img, video, iframe, canvas, picture) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Subtle diagonal light sweep. Reads as a glass edge rather than as decoration. */
+.cove-media__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(150deg, rgb(255 255 255/.10), transparent 40%);
+}
+
+.cove-media__badge {
+  position: absolute;
+  z-index: 2;
+}
+
+.cove-media__badge--top-left {
+  top: 9px;
+  left: 9px;
+}
+
+.cove-media__badge--bottom-right {
+  right: 9px;
+  bottom: 9px;
+}
+
+/* ── Progress ────────────────────────────────────────────────────────────── */
+
+.cove-progress {
+  height: 3px;
+  margin-top: 11px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.cove-progress__bar {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+
+.cove-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-full);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.cove-badge--neutral {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  color: var(--text-muted);
+}
+
+/* For use over media: dark translucent, blurred, tabular for durations. */
+.cove-badge--glass {
+  background: rgb(0 0 0/.55);
+  border: 1px solid rgb(255 255 255/.14);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  backdrop-filter: blur(8px) saturate(140%);
+}
+
+.cove-badge--live {
+  background: var(--live);
+  border: 1px solid transparent;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.cove-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: cove-pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes cove-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: .45;
+    transform: scale(.82);
+  }
+}
+
+/* The global reduced-motion switch in base.css collapses durations; this makes
+   the dot static and fully opaque instead of frozen mid-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .cove-badge__dot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────────────── */
+
+.cove-avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--r-full);
+  /* Accent gradient is the fallback identity when there is no picture. */
+  background: linear-gradient(140deg, var(--accent), var(--accent-soft));
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+.cove-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.cove-avatar--md {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.cove-avatar--lg {
+  width: 52px;
+  height: 52px;
+  font-size: 17px;
+}
+
+.cove-avatar__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

@@ -1,0 +1,33 @@
+# ─── dependencies ────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+
+# ─── build output ────────────────────────────────────────────────
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# ─── secrets — never commit these ────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ─── runtime state (media, uploads, recordings, db) ──────────────
+/data/
+!data/.gitkeep
+
+# ─── tests & logs ────────────────────────────────────────────────
+coverage/
+*.log
+pnpm-debug.log*
+
+# ─── editors & OS ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm blocks dependency install scripts by default (strictDepBuilds: true) and
+# since v11 the old `onlyBuiltDependencies` list is gone — it is a single
+# `allowBuilds` map now. Only these genuinely need to run native build steps:
+#   sharp              → libvips bindings for the image pipeline
+#   esbuild            → native binary behind the worker's bundler
+#   @tailwindcss/oxide → native binary behind Tailwind v4
+#   unrs-resolver      → native module resolution used by lint tooling
+# Run `pnpm approve-builds` to see anything still awaiting approval.
+allowBuilds:
+  sharp: true
+  esbuild: true
+  "@tailwindcss/oxide": true
+  "@tailwindcss/postcss": true
+  unrs-resolver: true
+
+# Supply-chain guard: refuse to install a package published minutes ago.
+# 1440 minutes (24h) is also pnpm's own default since v11 — stated here so the
+# policy is explicit and reviewable rather than implicit.
+minimumReleaseAge: 1440

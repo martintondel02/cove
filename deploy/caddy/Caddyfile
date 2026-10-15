@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Cove — Caddy front door.
+#
+#  Caddy exists so that a self-hoster never has to write reverse-proxy config:
+#  it reads the site address from the environment, obtains a certificate
+#  automatically when given a real hostname, and stays plain HTTP for a LAN
+#  install so first boot can never block on ACME.
+# ─────────────────────────────────────────────────────────────────────────────
+
+{
+	email {$COVE_ACME_EMAIL}
+	# Caddy's own admin endpoint is not needed once running.
+	admin off
+}
+
+{$COVE_SITE_ADDRESS} {
+	encode zstd gzip
+
+	# ── security headers ────────────────────────────────────────────────────
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		-Server
+	}
+
+	# ── media: stream, don't buffer ─────────────────────────────────────────
+	# HLS playlists are small and change constantly; segments are immutable.
+	# Buffering either of these is the classic cause of a player that stalls.
+	@hls path /media/*.m3u8
+	header @hls Cache-Control "no-cache"
+	@segments path /media/*.m4s /media/*.mp4
+	header @segments Cache-Control "public, max-age=31536000, immutable"
+
+	# ── app ─────────────────────────────────────────────────────────────────
+	reverse_proxy web:3000 {
+		# Required for LL-HLS and event streams (chat).
+		flush_interval -1
+		header_up X-Real-IP {remote_host}
+	}
+
+	# ── live streaming (compose profile "live", MediaMTX on host network) ───
+	# Only the HTTP signalling endpoints are proxied. The WebRTC *media* flows
+	# over UDP 8189 straight to the host and cannot be proxied — see
+	# docs/PLAN.md §7.3. Uncomment together with the live profile.
+	#
+	# handle /live/* {
+	# 	uri strip_prefix /live
+	# 	reverse_proxy 127.0.0.1:8889
+	# }
+
+	log {
+		output stdout
+		format console
+	}
+}

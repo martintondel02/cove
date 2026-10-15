@@ -1,0 +1,93 @@
+/* ============================================================================
+   Cove — design tokens
+   ----------------------------------------------------------------------------
+   Consumers import exactly one stylesheet:
+
+       @import "@cove/ui/tokens.css";
+
+   It pulls in the preset overrides (themes.css), the global base layer
+   (base.css) and the primitive styles (components.css), so a single import is
+   enough. The tokens themselves stay here because this file is the public,
+   runtime-overridable contract: the server rewrites these same custom
+   properties from the database (see `tokensToCss` in src/themes.ts).
+
+   Everything is a CSS custom property on purpose. Theming must work without a
+   rebuild and without shipping a second stylesheet per preset.
+   ========================================================================== */
+@import "./themes.css";
+@import "./base.css";
+@import "./components.css";
+
+/* `:root` carries the default "cove" preset (warm dark, ember accent). */
+:root {
+  /* Native controls, scrollbars and form widgets follow the resolved theme. */
+  color-scheme: dark;
+
+  /* Surfaces — warm charcoal, dark-first. Never pure black. */
+  --canvas: #141110;
+  --surface: #1c1917;
+  --surface-2: #242020;
+  --overlay: #2c2726;
+  --hairline: rgb(255 255 255 / .07);
+  --hairline-strong: rgb(255 255 255 / .12);
+
+  /* Text */
+  --text: #f2ede7;
+  --text-muted: #a8a09a;
+  --text-faint: #6f6864;
+
+  /* Accent — one hue, three intensities. --accent-ink is text *on* the accent. */
+  --accent: #e8734a;
+  --accent-soft: #f0a184;
+  --accent-ink: #1a0f0a;
+
+  /* Live / on-air. The only "urgent" colour in the system, and it stays muted. */
+  --live: #e0574f;
+
+  /* Shape */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-full: 999px;
+
+  /* Depth — soft and wide rather than dark and tight. */
+  --shadow-1: 0 1px 2px rgb(0 0 0/.30), 0 8px 24px rgb(0 0 0/.25);
+  --shadow-2: 0 2px 6px rgb(0 0 0/.35), 0 24px 64px rgb(0 0 0/.40);
+
+  /* Film-grain opacity for the body overlay. 0 turns the texture off. */
+  --grain: .035;
+
+  /* Type. Fraunces/Geist are the intent; the web-safe chain keeps the layout
+     honest before the webfonts land (and forever, if the owner never loads them). */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Motion. Spring, never decoration: transform/opacity only, 180–260ms. */
+  --ease: cubic-bezier(.22,1,.36,1);
+  --dur-1: 180ms;
+  --dur-2: 260ms;
+
+  /* Spacing scale (4px base). The `density` theme knob rewrites these. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Reading width. 66ch sits inside the 45–75ch comfort band for long-form. */
+  --measure: 66ch;
+  --measure-narrow: 52ch;
+
+  /* Card style. The `cardStyle` theme knob rewrites these three. */
+  --card-bg: var(--surface);
+  --card-radius: var(--r-md);
+  --card-shadow: var(--shadow-1);
+  --card-shadow-hover: var(--shadow-2);
+  --card-lift: -3px;
+  --card-pad-block: 14px;
+  --card-pad-inline: 15px;
+  --card-pad-bottom: 16px;
+}

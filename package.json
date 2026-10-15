@@ -1,0 +1,25 @@
+{
+  "name": "cove",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A self-hostable, federated personal media site — video, livestreams and photos in one calm place.",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @cove/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @cove/db generate",
+    "db:migrate": "pnpm --filter @cove/db migrate",
+    "worker": "pnpm --filter @cove/worker dev",
+    "doctor": "bash scripts/doctor.sh"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  }
+}

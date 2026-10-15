@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Cove — default install.
+#
+#  Three services, no mandatory reverse-proxy config, no Redis, no S3, no SMTP.
+#  Everything else is opt-in via compose profiles (see compose.live.yaml).
+#
+#  Start with:  ./setup.sh && podman compose up -d     (or `docker compose up -d`)
+# ─────────────────────────────────────────────────────────────────────────────
+name: cove
+
+services:
+  db:
+    image: docker.io/library/postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cove}
+      # Fail loudly with an actionable message rather than booting a database
+      # with an empty password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set — run ./setup.sh to generate a .env}
+      POSTGRES_DB: ${POSTGRES_DB:-cove}
+      # Deterministic collation so index ordering cannot drift between hosts.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=icu --icu-locale=en"
+    volumes:
+      # Named volume, never a host path: Postgres on a network share corrupts.
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cove} -d ${POSTGRES_DB:-cove}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [cove]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      # Composed from the parts so a self-hoster only edits the password once.
+      DATABASE_URL: postgres://${POSTGRES_USER:-cove}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-cove}
+      COVE_DATA_DIR: /data
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      # Migrations run on boot, so the correct path must be explicit — it differs
+      # between `next dev` and the standalone production image.
+      COVE_MIGRATIONS_DIR: /app/drizzle
+    volumes:
+      # `:Z` relabels for SELinux, which is enforcing by default on Fedora.
+      - ./data:/data:Z
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks: [cove]
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      # The site address Caddy should serve. A bare hostname or https:// URL
+      # triggers automatic Let's Encrypt; `http://localhost` stays plain HTTP so
+      # a LAN install never blocks on certificate issuance.
+      COVE_SITE_ADDRESS: ${COVE_SITE_ADDRESS:-http://localhost}
+      COVE_ACME_EMAIL: ${COVE_ACME_EMAIL:-}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+    networks: [cove]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  cove:

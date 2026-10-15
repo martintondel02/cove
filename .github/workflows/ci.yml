@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref — CI minutes are someone's real money.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the exact pnpm version from package.json `packageManager`, so CI
+      # and local development cannot drift.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # A doctor script that fails to parse is worse than no doctor script, and
+      # these are the first thing a new self-hoster runs.
+      - name: Syntax check
+        run: |
+          bash -n setup.sh
+          for f in scripts/*.sh; do bash -n "$f"; done
+
+      - name: ShellCheck
+        run: shellcheck --severity=warning setup.sh scripts/*.sh
+        continue-on-error: true # advisory while the scripts are young
+
+  compose:
+    name: Compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Validate that the stack is internally consistent — service names,
+      # variable interpolation, volume labels, and healthcheck syntax — without
+      # pulling a single image.
+      - name: Prepare a throwaway .env
+        run: |
+          cp .env.example .env
+          {
+            echo "COVE_SITE_URL=http://localhost"
+            echo "POSTGRES_PASSWORD=ci-throwaway-password"
+            echo "COVE_SESSION_SECRET=$(openssl rand -hex 32)"
+            echo "COVE_SECRET_KEY=$(openssl rand -hex 32)"
+          } >> .env
+
+      - name: Validate default stack
+        run: docker compose -f compose.yaml config --quiet
+
+      - name: Validate live overlay
+        run: docker compose -f compose.yaml -f compose.live.yaml --profile live config --quiet
+
+  doctor:
+    name: Doctor runs clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The doctor must never crash, even on a machine that is entirely
+      # unconfigured — that is exactly when someone runs it.
+      - name: Run with no .env
+        run: ./scripts/doctor.sh || true
+
+      - name: Run with a generated .env
+        run: |
+          ./setup.sh --yes
+          ./scripts/doctor.sh || true

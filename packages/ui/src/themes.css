@@ -1,0 +1,141 @@
+/* ============================================================================
+   Cove — theme presets
+   ----------------------------------------------------------------------------
+   Every preset fully restates the tokens it changes so a single
+   `data-theme="..."` attribute on <html> is enough to switch the whole site.
+   `:root` in tokens.css holds the "cove" defaults, so an unset or unknown
+   data-theme still renders correctly.
+
+   Presets are the "looks finished untouched" layer; the admin theme editor
+   writes per-token overrides on top of the chosen preset (src/themes.ts).
+   ========================================================================== */
+
+/* ── cove — warm charcoal, ember accent, serif display (default) ─────────── */
+[data-theme="cove"] {
+  color-scheme: dark;
+
+  --canvas: #141110;
+  --surface: #1c1917;
+  --surface-2: #242020;
+  --overlay: #2c2726;
+  --hairline: rgb(255 255 255 / .07);
+  --hairline-strong: rgb(255 255 255 / .12);
+
+  --text: #f2ede7;
+  --text-muted: #a8a09a;
+  --text-faint: #6f6864;
+
+  --accent: #e8734a;
+  --accent-soft: #f0a184;
+  --accent-ink: #1a0f0a;
+  --live: #e0574f;
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0/.30), 0 8px 24px rgb(0 0 0/.25);
+  --shadow-2: 0 2px 6px rgb(0 0 0/.35), 0 24px 64px rgb(0 0 0/.40);
+
+  --grain: .035;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── studio — neutral graphite, grotesk everywhere, tight radii, no grain ── */
+[data-theme="studio"] {
+  color-scheme: dark;
+
+  --canvas: #0f1113;
+  --surface: #16191c;
+  --surface-2: #1e2226;
+  --overlay: #262b30;
+  --hairline: rgb(255 255 255 / .08);
+  --hairline-strong: rgb(255 255 255 / .14);
+
+  --text: #eef1f4;
+  --text-muted: #98a1a9;
+  --text-faint: #646d75;
+
+  --accent: #5b9cf8;
+  --accent-soft: #93c0fb;
+  --accent-ink: #07101d;
+  --live: #f0524b;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0/.40), 0 6px 18px rgb(0 0 0/.30);
+  --shadow-2: 0 2px 8px rgb(0 0 0/.45), 0 20px 50px rgb(0 0 0/.50);
+
+  --grain: 0;
+
+  /* Studio has no display face: titles are the UI sans, just tighter. */
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── paper — light, editorial, warm off-white ────────────────────────────── */
+[data-theme="paper"] {
+  color-scheme: light;
+
+  --canvas: #faf7f2;
+  --surface: #fffdfa;
+  --surface-2: #f2ece3;
+  --overlay: #ffffff;
+  --hairline: rgb(27 23 20 / .09);
+  --hairline-strong: rgb(27 23 20 / .16);
+
+  --text: #1b1714;
+  --text-muted: #6b625b;
+  --text-faint: #9c928a;
+
+  --accent: #c2552c;
+  --accent-soft: #e08a63;
+  --accent-ink: #fff8f4;
+  --live: #c8402f;
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+
+  --shadow-1: 0 1px 2px rgb(27 23 20/.05), 0 8px 22px rgb(27 23 20/.07);
+  --shadow-2: 0 2px 6px rgb(27 23 20/.07), 0 22px 50px rgb(27 23 20/.11);
+
+  --grain: .02;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── midnight — deep blue-black, cool indigo accent, generous radii ──────── */
+[data-theme="midnight"] {
+  color-scheme: dark;
+
+  --canvas: #0b1017;
+  --surface: #111925;
+  --surface-2: #18212f;
+  --overlay: #1f2a3a;
+  --hairline: rgb(255 255 255 / .07);
+  --hairline-strong: rgb(255 255 255 / .13);
+
+  --text: #e9eef6;
+  --text-muted: #8f9bab;
+  --text-faint: #5d6878;
+
+  --accent: #7aa2f7;
+  --accent-soft: #a8c2fa;
+  --accent-ink: #080f1c;
+  --live: #ef5f6b;
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0/.35), 0 10px 26px rgb(0 0 0/.30);
+  --shadow-2: 0 2px 6px rgb(0 0 0/.40), 0 26px 60px rgb(0 0 0/.50);
+
+  --grain: .03;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
