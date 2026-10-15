@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { buildSpriteVtt, spriteArgs, spriteIntervalSeconds } from "./artifacts.ts";
 import { buildCopyArgs, buildTranscodeArgs } from "./commands.ts";
 import { decide } from "./decide.ts";
 import { RENDITIONS_16_9 } from "./ladder.ts";
@@ -148,6 +149,58 @@ describe(
           `no master playlist; got ${files.join(", ")}`,
         );
         assert.ok(files.some((f) => f.endsWith(".m4s")), "no fMP4 segments were written");
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("names its sprite sheets the way the VTT index expects", async () => {
+      // This ties the two halves together. ffmpeg's image2 muxer numbers from 1, so a
+      // VTT that says sprite_000.jpg points at nothing and the scrubber silently
+      // fails in the browser — which is exactly what happened before this test.
+      const dir = await makeTempDir();
+      try {
+        const file = await makeH264Clip(dir, false);
+        const outDir = join(dir, "sprite");
+        await mkdir(outDir, { recursive: true });
+
+        const duration = 3;
+        const sheetName = "sprite_%03d.jpg";
+        await runOrThrow(
+          "ffmpeg",
+          spriteArgs(file, {
+            outputPattern: join(outDir, sheetName),
+            durationSeconds: duration,
+            thumbWidth: 160,
+            columns: 10,
+            rows: 10,
+          }),
+        );
+
+        const sheets = (await readdir(outDir)).filter((name) => name.endsWith(".jpg"));
+        assert.ok(sheets.length > 0, "no sprite sheets were produced");
+
+        const vtt = buildSpriteVtt({
+          durationSeconds: duration,
+          intervalSeconds: spriteIntervalSeconds(duration),
+          thumbWidth: 160,
+          thumbHeight: 90,
+          columns: 10,
+          rows: 10,
+          sheetPattern: sheetName,
+          firstSheetNumber: 1,
+        });
+
+        const referenced = [
+          ...new Set([...vtt.matchAll(/([^\s#]+\.jpg)/g)].map((match) => match[1]!)),
+        ];
+        assert.ok(referenced.length > 0, "the VTT referenced no sheets");
+        for (const name of referenced) {
+          assert.ok(
+            sheets.includes(name),
+            `the VTT references ${name}, but the sheets on disk are: ${sheets.join(", ")}`,
+          );
+        }
       } finally {
         await rm(dir, { recursive: true, force: true });
       }

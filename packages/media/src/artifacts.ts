@@ -96,10 +96,33 @@ export function parseAverageColor(bytes: Uint8Array): string | null {
   return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/**
+ * How far apart scrubber thumbnails should be for a given duration.
+ *
+ * This must scale with the video, and getting it wrong is a hard failure rather
+ * than a cosmetic one: at a fixed 10-second interval a three-second clip yields
+ * *zero* frames, ffmpeg treats "nothing was written" as an error, and the whole
+ * sprite command fails. Short clips are extremely common, so a fixed interval would
+ * break the scrubber for a large share of uploads.
+ *
+ * Aims for roughly `targetFrames` thumbnails, bounded so that very short clips still
+ * get at least one per second and very long ones do not spawn hundreds of sheets.
+ */
+export function spriteIntervalSeconds(
+  durationSeconds: number,
+  targetFrames = 100,
+  minInterval = 1,
+  maxInterval = 10,
+): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return minInterval;
+  const ideal = durationSeconds / targetFrames;
+  return Math.min(maxInterval, Math.max(minInterval, ideal));
+}
+
 export interface SpriteOptions {
   readonly outputPattern: string;
   readonly durationSeconds: number;
-  /** Seconds between thumbnails. */
+  /** Seconds between thumbnails. Defaults to an adaptive interval. */
   readonly intervalSeconds?: number;
   readonly thumbWidth?: number;
   readonly columns?: number;
@@ -113,7 +136,7 @@ export interface SpriteOptions {
  * compositing inside ffmpeg.
  */
 export function spriteArgs(input: string, options: SpriteOptions): string[] {
-  const interval = options.intervalSeconds ?? 10;
+  const interval = options.intervalSeconds ?? spriteIntervalSeconds(options.durationSeconds);
   const width = options.thumbWidth ?? 160;
   const columns = options.columns ?? 10;
   const rows = options.rows ?? 10;
@@ -140,8 +163,16 @@ export interface SpriteVttOptions {
   readonly thumbHeight: number;
   readonly columns?: number;
   readonly rows?: number;
-  /** File name pattern for sheets, e.g. `sheet_%03d.jpg`. */
+  /** File name pattern for sheets, e.g. `sprite_%03d.jpg`. */
   readonly sheetPattern?: string;
+  /**
+   * Number of the first sheet.
+   *
+   * Defaults to **1**, because that is what ffmpeg's `image2` muxer produces for a
+   * `%03d` pattern: the first file is `...001.jpg`, never `...000.jpg`. Getting this
+   * wrong makes every cue point at a file that does not exist.
+   */
+  readonly firstSheetNumber?: number;
 }
 
 function timestamp(seconds: number): string {
@@ -161,12 +192,14 @@ function timestamp(seconds: number): string {
  * one file plus a text index.
  */
 export function buildSpriteVtt(options: SpriteVttOptions): string {
-  const interval = options.intervalSeconds ?? 10;
+  // Must match whatever `spriteArgs` used, or the cues point at the wrong tiles.
+  const interval = options.intervalSeconds ?? spriteIntervalSeconds(options.durationSeconds);
   const width = options.thumbWidth ?? 160;
   const columns = options.columns ?? 10;
   const rows = options.rows ?? 10;
   const perSheet = columns * rows;
-  const pattern = options.sheetPattern ?? "sheet_%03d.jpg";
+  const pattern = options.sheetPattern ?? "sprite_%03d.jpg";
+  const firstSheet = options.firstSheetNumber ?? 1;
 
   // `ceil`, not `floor`: `fps=1/<interval>` emits a frame at t=0, t=interval, … so a
   // 25s video at a 10s interval really does produce three frames. Using floor left
@@ -183,7 +216,7 @@ export function buildSpriteVtt(options: SpriteVttOptions): string {
     const sheetName = pattern.replace(
       /%0?(\d*)d/,
       (_match, pad: string) =>
-        String(sheetIndex).padStart(pad ? Number(pad) : 1, "0"),
+        String(sheetIndex + firstSheet).padStart(pad ? Number(pad) : 1, "0"),
     );
 
     const start = frame * interval;
@@ -200,12 +233,13 @@ export function buildSpriteVtt(options: SpriteVttOptions): string {
 /** How many sheet images `spriteArgs` will produce for a given duration. */
 export function spriteSheetCount(
   durationSeconds: number,
-  intervalSeconds = 10,
+  intervalSeconds?: number,
   columns = 10,
   rows = 10,
 ): number {
+  const interval = intervalSeconds ?? spriteIntervalSeconds(durationSeconds);
   // Must agree with `buildSpriteVtt`: both round up, because ffmpeg emits a frame
   // at t=0 as well as one per interval.
-  const frames = Math.max(1, Math.ceil(durationSeconds / intervalSeconds));
+  const frames = Math.max(1, Math.ceil(durationSeconds / interval));
   return Math.max(1, Math.ceil(frames / (columns * rows)));
 }

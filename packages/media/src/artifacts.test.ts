@@ -12,6 +12,7 @@ import {
   posterArgs,
   posterTimestamp,
   spriteArgs,
+  spriteIntervalSeconds,
   spriteSheetCount,
 } from "./artifacts.ts";
 
@@ -71,7 +72,13 @@ describe("ambient colour", () => {
 
 describe("sprite sheet", () => {
   it("tiles thumbnails in one image request rather than hundreds", () => {
-    const args = spriteArgs("/in.mp4", { outputPattern: "/out/sheet_%03d.jpg", durationSeconds: 600 });
+    // The interval is pinned here so this tests the filter chain itself; the choice
+    // of interval is covered separately under "adaptive sprite interval".
+    const args = spriteArgs("/in.mp4", {
+      outputPattern: "/out/sheet_%03d.jpg",
+      durationSeconds: 600,
+      intervalSeconds: 10,
+    });
     const filter = args[args.indexOf("-vf") + 1] ?? "";
     assert.match(filter, /fps=1\/10/);
     assert.match(filter, /tile=10x10/);
@@ -104,9 +111,9 @@ describe("sprite WebVTT index", () => {
     // 30s at 10s intervals = 3 frames.
     const cues = vtt.match(/-->/g) ?? [];
     assert.equal(cues.length, 3);
-    assert.match(vtt, /sheet_000\.jpg#xywh=0,0,160,90/);
-    assert.match(vtt, /sheet_000\.jpg#xywh=160,0,160,90/);
-    assert.match(vtt, /sheet_000\.jpg#xywh=320,0,160,90/);
+    assert.match(vtt, /sprite_001\.jpg#xywh=0,0,160,90/);
+    assert.match(vtt, /sprite_001\.jpg#xywh=160,0,160,90/);
+    assert.match(vtt, /sprite_001\.jpg#xywh=320,0,160,90/);
   });
 
   it("uses HH:MM:SS.mmm timestamps", () => {
@@ -122,7 +129,7 @@ describe("sprite WebVTT index", () => {
       thumbWidth: 160,
       thumbHeight: 90,
     });
-    assert.match(big, /sheet_001\.jpg#xywh=0,0,160,90/);
+    assert.match(big, /sprite_002\.jpg#xywh=0,0,160,90/);
   });
 
   it("wraps to the next row once a row is full", () => {
@@ -135,7 +142,7 @@ describe("sprite WebVTT index", () => {
       thumbHeight: 90,
     });
     // Frame 10 is the first tile of the second row.
-    assert.match(wide, /sheet_000\.jpg#xywh=0,90,160,90/);
+    assert.match(wide, /sprite_001\.jpg#xywh=0,90,160,90/);
   });
 
   it("clamps the final cue to the real duration rather than overrunning", () => {
@@ -146,5 +153,43 @@ describe("sprite WebVTT index", () => {
       thumbHeight: 90,
     });
     assert.match(short, /00:00:20\.000 --> 00:00:25\.000/);
+  });
+});
+
+describe("adaptive sprite interval", () => {
+  // The bug this exists for: a fixed 10s interval produces ZERO frames for a clip
+  // shorter than 10 seconds, ffmpeg treats "nothing written" as a hard error, and the
+  // whole sprite command fails. A three-second clip is entirely normal.
+  it("never exceeds the clip's own length", () => {
+    for (const duration of [0.5, 1, 3, 9, 10, 30]) {
+      const interval = spriteIntervalSeconds(duration);
+      const frames = Math.max(1, Math.ceil(duration / interval));
+      assert.ok(frames >= 1, `${duration}s at ${interval}s produced no frames`);
+    }
+  });
+
+  it("gives short clips a thumbnail per second", () => {
+    assert.equal(spriteIntervalSeconds(3), 1);
+    assert.equal(spriteIntervalSeconds(9.9), 1);
+  });
+
+  it("scales up for long videos instead of generating hundreds of sheets", () => {
+    assert.equal(spriteIntervalSeconds(600), 6);
+    // Capped, so a four-hour recording does not spawn dozens of contact sheets.
+    assert.equal(spriteIntervalSeconds(14400), 10);
+  });
+
+  it("survives a zero or unknown duration", () => {
+    assert.equal(spriteIntervalSeconds(0), 1);
+    assert.equal(spriteIntervalSeconds(Number.NaN), 1);
+  });
+
+  it("keeps spriteArgs, the VTT and the sheet count in agreement", () => {
+    // If these disagreed, cues would point at the wrong tile.
+    const duration = 42;
+    const interval = spriteIntervalSeconds(duration);
+    assert.equal(spriteArgs("/in.mp4", { outputPattern: "/o/s_%03d.jpg", durationSeconds: duration })[
+      spriteArgs("/in.mp4", { outputPattern: "/o/s_%03d.jpg", durationSeconds: duration }).indexOf("-vf") + 1
+    ], `fps=1/${interval},scale=160:-2,tile=10x10`);
   });
 });

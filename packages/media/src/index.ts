@@ -33,6 +33,7 @@ export {
   posterArgs,
   posterTimestamp,
   spriteArgs,
+  spriteIntervalSeconds,
   spriteSheetCount,
   type PosterOptions,
   type SpriteOptions,

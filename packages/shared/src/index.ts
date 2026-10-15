@@ -39,6 +39,8 @@ export {
   POWER_PRESETS,
   isUsingDevSecret,
   loadEnv,
+  loadWorkerEnv,
   type Env,
   type PowerPreset,
+  type WorkerEnv,
 } from "./env.ts";

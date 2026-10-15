@@ -17,6 +17,13 @@
 
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+
+    // The worker and the tests run TypeScript directly on Node, which only strips
+    // types — it cannot compile code-generating syntax. Enums, namespaces,
+    // parameter properties and the like therefore fail at *runtime* with a
+    // confusing syntax error. This flag turns that into a typecheck failure
+    // instead, which is where it belongs.
+    "erasableSyntaxOnly": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,

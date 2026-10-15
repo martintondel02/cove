@@ -186,4 +186,63 @@ export function isUsingDevSecret(env: Env): boolean {
   return env.sessionSecret === DEV_SECRET;
 }
 
+/* ────────────────────────── worker environment ────────────────────────── */
+
+const workerEnvSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  DATABASE_URL: z.string().trim().min(1, "is required — the bundled Postgres sets this for you"),
+  COVE_DATA_DIR: z.string().trim().min(1).default("/data"),
+  COVE_MIN_FREE_MB: z.coerce.number().int().min(0).default(2048),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(1),
+  COVE_POWER_PRESET: z.enum(POWER_PRESETS).default("balanced"),
+  /** `libx264` (default), `nvenc`, or `qsv`. */
+  COVE_VIDEO_ENCODER: z.string().trim().default("libx264"),
+  /** How often to look for jobs whose worker died, in seconds. */
+  COVE_JOB_SWEEP_SECONDS: z.coerce.number().int().min(10).default(60),
+});
+
+export interface WorkerEnv {
+  readonly nodeEnv: "development" | "test" | "production";
+  readonly databaseUrl: string;
+  readonly dataDir: string;
+  readonly minFreeMb: number;
+  readonly concurrency: number;
+  readonly powerPreset: PowerPreset;
+  /** Encoder name as the operator wrote it; normalised by @cove/media. */
+  readonly videoEncoder: string;
+  readonly jobSweepSeconds: number;
+}
+
+/**
+ * Environment for the media worker.
+ *
+ * Deliberately separate from `loadEnv`: the worker has no site identity, no
+ * sessions and no handle, so requiring those would mean it refuses to start over
+ * configuration it never uses. Splitting the schema keeps each process's
+ * requirements honest, and lets `node src/index.ts` run standalone.
+ */
+export function loadWorkerEnv(source: Record<string, string | undefined> = process.env): WorkerEnv {
+  const parsed = workerEnvSchema.safeParse(source);
+  if (!parsed.success) {
+    const lines = parsed.error.issues
+      .map((issue) => `  • ${issue.path.join(".") || "(root)"} — ${issue.message}`)
+      .join("\n");
+    throw new EnvError(
+      `The Cove worker could not start because its configuration is invalid:\n${lines}`,
+    );
+  }
+
+  const env = parsed.data;
+  return {
+    nodeEnv: env.NODE_ENV,
+    databaseUrl: env.DATABASE_URL,
+    dataDir: env.COVE_DATA_DIR,
+    minFreeMb: env.COVE_MIN_FREE_MB,
+    concurrency: env.WORKER_CONCURRENCY,
+    powerPreset: env.COVE_POWER_PRESET,
+    videoEncoder: env.COVE_VIDEO_ENCODER,
+    jobSweepSeconds: env.COVE_JOB_SWEEP_SECONDS,
+  };
+}
+
 export { nonEmptySecret };

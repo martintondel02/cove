@@ -1,0 +1,23 @@
+{
+  "name": "@cove/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@cove/db": "workspace:*",
+    "@cove/media": "workspace:*",
+    "@cove/shared": "workspace:*",
+    "pg-boss": "12.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  }
+}

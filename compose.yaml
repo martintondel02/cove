@@ -8,6 +8,27 @@
 # ─────────────────────────────────────────────────────────────────────────────
 name: cove
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Which uid containers run as inside, for anything that writes to ./data.
+#
+#  This matters more than it looks. **Rootless Podman** (the default on Fedora)
+#  maps container uids into a subordinate range, so container-uid 1000 is NOT
+#  host-uid 1000 — a bind mount owned by you with mode 755 is therefore not
+#  writable by a container running as uid 1000, and jobs die with
+#  "EACCES: permission denied, mkdir '/data/media'".
+#
+#  Running as root *inside* the container is the standard fix, and under rootless
+#  Podman it is not a privilege escalation: container-root maps to the invoking user,
+#  so published media ends up owned by you and stays manageable from the host. The
+#  alternative — `podman unshare chown 1000:1000 ./data` — leaves the directory owned
+#  by a subuid you cannot write to yourself, which is worse for a personal media
+#  library you may want to reorganise or back up.
+#
+#  On **rootful Docker**, container-root really is host root, so set these to your own
+#  ids instead:  COVE_UID=$(id -u) COVE_GID=$(id -g)
+# ─────────────────────────────────────────────────────────────────────────────
+x-cove-user: &cove-user "${COVE_UID:-0}:${COVE_GID:-0}"
+
 services:
   db:
     image: docker.io/library/postgres:18-alpine
@@ -48,6 +69,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
+    user: *cove-user
     env_file:
       - .env
     environment:
@@ -76,6 +98,35 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+    networks: [cove]
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    user: *cove-user
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-cove}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-cove}
+      COVE_DATA_DIR: /data
+      # 1 by default: a second concurrent transcode on modest hardware makes both
+      # slower, and the queue is not the bottleneck.
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+      COVE_POWER_PRESET: ${COVE_POWER_PRESET:-balanced}
+      COVE_VIDEO_ENCODER: ${COVE_VIDEO_ENCODER:-libx264}
+    volumes:
+      # The same volume the web app serves from, so publishing a video is a rename
+      # rather than a copy.
+      - ./data:/data:Z
+    depends_on:
+      db:
+        condition: service_healthy
+    # An encode can run for a long time. Give it the chance to finish and clean up
+    # instead of being killed mid-write, which would leave scratch directories behind.
+    stop_grace_period: 2m
     networks: [cove]
 
   caddy:

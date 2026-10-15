@@ -23,6 +23,20 @@ export {
 } from "./posts.ts";
 
 export {
+  createMediaJob,
+  findLatestJobForPost,
+  listUnpublishedPosts,
+  publishVideo,
+  requeueStaleJobs,
+  updateMediaJob,
+  type CreateJobInput,
+  type JobState,
+  type PublishAsset,
+  type PublishVideoInput,
+  type UpdateJobInput,
+} from "./media-jobs.ts";
+
+export {
   DEFAULT_SETTINGS,
   SETTING_KEYS,
   ensureDefaultSettings,
