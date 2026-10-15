@@ -83,6 +83,12 @@ works because the design system uses `@theme inline` rather than `@theme`.
 Typecheck was proven to *fail* on a deliberately broken type, so a green run
 means something.
 
+**CI is green** on `main` (run [38807840634](https://github.com/martintondel02/cove/actions)),
+all four jobs passing: *Typecheck & build*, *Shell scripts* (bash -n + shellcheck),
+*Compose config* (`docker compose config` for both the default stack and the live
+overlay), and *Doctor runs clean* (which runs `setup.sh --yes` and then
+`doctor.sh` on a machine with nothing configured).
+
 **`setup.sh` / `doctor.sh`,** end to end on this machine:
 
 ```
