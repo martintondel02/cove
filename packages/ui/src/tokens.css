@@ -13,13 +13,27 @@
 
    Everything is a CSS custom property on purpose. Theming must work without a
    rebuild and without shipping a second stylesheet per preset.
+
+   This file is also the app's single Tailwind entry: it pulls Tailwind in and
+   maps the tokens onto Tailwind's namespaces, so importing @cove/ui/tokens.css
+   is enough for both. Do not also `@import "tailwindcss"` in the app's own CSS,
+   or preflight and the theme block get emitted twice.
    ========================================================================== */
+@import "tailwindcss";
 @import "./themes.css";
 @import "./base.css";
 @import "./components.css";
 
-/* `:root` carries the default "cove" preset (warm dark, ember accent). */
-:root {
+/* Defaults are written as `:where(:root)` — still the root element, but at zero
+   specificity. This matters because @import hoists themes.css *above* this block
+   while `:root` and `[data-theme="…"]` have identical specificity: a plain
+   `:root` here would win on source order and flatten every preset back to cove.
+   Zero specificity gives a clean, order-independent ladder:
+     :where(:root)                     → cove defaults            (0,0,0)
+     [data-theme="…"]                  → preset values            (0,1,0)
+     html[data-theme="…"]              → owner's overrides        (0,1,1)
+   `:root` still carries the tokens; only its specificity changed. */
+:where(:root) {
   /* Native controls, scrollbars and form widgets follow the resolved theme. */
   color-scheme: dark;
 
@@ -90,4 +104,59 @@
   --card-pad-block: 14px;
   --card-pad-inline: 15px;
   --card-pad-bottom: 16px;
+}
+
+/* ───────────────────────────  TAILWIND BRIDGE  ───────────────────────────
+   Maps the tokens onto Tailwind's namespaces so the app can write `bg-surface`,
+   `text-muted`, `rounded-md`, `shadow-soft`, `font-serif` instead of arbitrary
+   `bg-[var(--surface)]` values.
+
+   `inline` is load-bearing, not a preference: a plain `@theme` block resolves
+   each value at definition time and bakes the literal into the utility, which
+   would ignore the server-injected runtime overrides on :root/[data-theme].
+   With `inline`, the utility emits `var(--surface)`, so a token changed after
+   the stylesheet was built still wins.
+
+   Keys are deliberately renamed where they would otherwise shadow a Cove token
+   of the same name (`--font-*`, `--shadow-*`): an inline self-reference such as
+   `--shadow-1: var(--shadow-1)` has no resolvable value. Spacing is left alone —
+   Tailwind's numeric scale already has its own meaning and must not be
+   redefined to our 4/8/12/16/24/32/48/64 steps. */
+@theme inline {
+  /* Surfaces */
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-overlay: var(--overlay);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  /* Text */
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+
+  /* Accent + live */
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-live: var(--live);
+
+  /* Shape — overrides Tailwind's default radius scale on purpose. */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+
+  /* Depth */
+  --shadow-soft: var(--shadow-1);
+  --shadow-deep: var(--shadow-2);
+
+  /* Type — `font-sans` is the UI face, `font-serif` the display face. */
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-display);
+
+  /* Motion */
+  --ease-spring: var(--ease);
+  --default-transition-duration: var(--dur-1);
 }

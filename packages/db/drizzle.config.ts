@@ -7,7 +7,10 @@ import { defineConfig } from "drizzle-kit";
  */
 export default defineConfig({
   schema: "./src/schema.ts",
-  out: "./drizzle",
+  // Migrations live at the repository root, not inside the package: the
+  // production image copies exactly one folder and the app resolves it from
+  // COVE_MIGRATIONS_DIR (default "./drizzle").
+  out: "../../drizzle",
   dialect: "postgresql",
   strict: true,
   verbose: true,

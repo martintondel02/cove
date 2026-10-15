@@ -20,4 +20,12 @@ allowBuilds:
 # Supply-chain guard: refuse to install a package published minutes ago.
 # 1440 minutes (24h) is also pnpm's own default since v11 — stated here so the
 # policy is explicit and reviewable rather than implicit.
+#
+# This is not theoretical. It caught `next@16.4.2`, which had been published
+# ~20 minutes earlier, and pushed the pin to `16.4.1` (27h old). A project
+# foundation should not be built on a release that nobody has run yet, and a
+# compromised or broken publish is most dangerous in its first hours.
+#
+# Consequence for contributors: a dependency pin must be at least a day old.
+# Prefer choosing the previous patch instead of adding an exclusion here.
 minimumReleaseAge: 1440

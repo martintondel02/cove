@@ -11,8 +11,8 @@
  */
 import { z } from "zod";
 
-import { normalizeSiteUrl } from "./ids.js";
-import { VISIBILITIES } from "./visibility.js";
+import { normalizeSiteUrl } from "./ids";
+import { VISIBILITIES } from "./visibility";
 
 export const POWER_PRESETS = ["remux-first", "low-power", "balanced", "quality"] as const;
 export type PowerPreset = (typeof POWER_PRESETS)[number];

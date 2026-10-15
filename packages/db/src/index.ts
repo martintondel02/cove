@@ -7,7 +7,20 @@ export {
   schema,
   type Database,
   type DbOptions,
-} from "./client.js";
+} from "./client";
+
+export {
+  detectIdentityDrift,
+  ensureOwnerActor,
+  getActorByHandle,
+  type OwnerActorInput,
+} from "./actors";
+
+export {
+  countFederatedPosts,
+  getPostBySlug,
+  listFederatedPosts,
+} from "./posts";
 
 export {
   DEFAULT_SETTINGS,
@@ -19,6 +32,6 @@ export {
   setSettings,
   type SettingKey,
   type SettingsMap,
-} from "./settings.js";
+} from "./settings";
 
-export * from "./schema.js";
+export * from "./schema";

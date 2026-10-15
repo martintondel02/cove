@@ -29,7 +29,15 @@ export function ThemeStyle({ preset, tokens }: ThemeStyleProps) {
   return (
     <style
       data-cove-theme={preset}
-      dangerouslySetInnerHTML={{ __html: `[data-theme="${preset}"]{${declarations}}` }}
+      // `html[data-theme=...]` rather than `[data-theme=...]`: both the preset
+      // block in themes.css and this override target the same element, and a
+      // bare attribute selector ties on specificity (0,1,0). That would make the
+      // winner depend on whether Next emits its stylesheet link before or after
+      // this inline tag — i.e. it would work locally and break behind a CDN.
+      // The extra type selector makes it (0,1,1), so the override always wins.
+      dangerouslySetInnerHTML={{
+        __html: `html[data-theme="${preset}"]{${declarations}}`,
+      }}
     />
   );
 }

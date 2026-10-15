@@ -13,7 +13,7 @@ Your instance is your identity — `@you@your-domain`.
 
 Cove unifies three things that are normally three separate products — long-form video, livestreaming, and photo/reel feeds — into a single, calm, good-looking site you run yourself. It is not a social network and not a multi-user platform: it is a **personal broadcast home**, which is what makes it small enough to actually self-host well.
 
-> **Status: Phase 0 (foundation).** The plan is complete and this repository is being built out against it. Nothing is usable yet — see the roadmap in [`docs/PLAN.md`](docs/PLAN.md).
+> **Status: Phase 0 complete** — the foundation is built and verified end to end against a real Postgres. See [docs/PHASE-0.md](docs/PHASE-0.md) for the evidence log and the places where reality disagreed with the plan. There is no media pipeline yet, so it is not usable as a media site.
 
 ## Why it exists
 
@@ -38,9 +38,9 @@ A working mockup is in [`docs/design-preview.html`](docs/design-preview.html) �
 
 | Phase | What lands |
 | --- | --- |
-| **0 — Foundation** ← *you are here* | Monorepo, design tokens, Postgres-backed theming, the federation seams, compose stack |
+| **0 — Foundation** ✅ | Monorepo, design tokens, Postgres-backed theming, the federation seams, compose stack, setup wizard, doctor |
 | 1 — Video core | Resumable upload → remux-or-transcode → HLS → player → library |
-| 2 — Admin & theming | Setup wizard, passkeys, theme editor with contrast guardrails |
+| 2 — Admin & theming | Setup wizard UI, passkeys, theme editor with contrast guardrails |
 | 3 — Photos, reels & feed | Image pipeline, blur-up placeholders, the mixed masonry feed |
 | 4 — Live *(optional profile)* | MediaMTX, WHEP with LL-HLS fallback, ephemeral chat, record → VOD |
 | 5 — Decentralization | ActivityPub via Fedify, broadcast-first, optional P2P delivery |

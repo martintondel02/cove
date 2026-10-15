@@ -3,11 +3,14 @@
    ----------------------------------------------------------------------------
    Every preset fully restates the tokens it changes so a single
    `data-theme="..."` attribute on <html> is enough to switch the whole site.
-   `:root` in tokens.css holds the "cove" defaults, so an unset or unknown
-   data-theme still renders correctly.
+   `:where(:root)` in tokens.css holds the "cove" defaults, so an unset or
+   unknown data-theme still renders correctly.
 
    Presets are the "looks finished untouched" layer; the admin theme editor
    writes per-token overrides on top of the chosen preset (src/themes.ts).
+   Keep these blocks at plain attribute specificity (0,1,0): that is what lets
+   ThemeStyle's `html[data-theme="…"]` overrides (0,1,1) win without !important,
+   whatever order the framework injects stylesheets in.
    ========================================================================== */
 
 /* ── cove — warm charcoal, ember accent, serif display (default) ─────────── */

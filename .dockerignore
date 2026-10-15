@@ -1,0 +1,38 @@
+# Keep the build context small and prevent host state from leaking into images.
+
+# Dependencies and build output are always installed/built inside the image.
+node_modules
+**/node_modules
+.pnpm-store
+.next
+**/.next
+dist
+build
+*.tsbuildinfo
+
+# Secrets must never enter a layer. .env.example is safe and is intentionally
+# NOT ignored, because setup.sh reads it as the template for a generated .env.
+.env
+.env.local
+.env.*.local
+
+# Runtime state: media, uploads, recordings.
+data
+
+# Version control and tooling.
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Docs and design renders are not needed to build or run the app.
+docs
+*.md
+!README.md
+
+# Local container definitions, so a stray copy cannot confuse the build.
+Dockerfile
+**/Dockerfile
+.dockerignore
+compose*.yaml
