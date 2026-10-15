@@ -13,7 +13,7 @@ Your instance is your identity — `@you@your-domain`.
 
 Cove unifies three things that are normally three separate products — long-form video, livestreaming, and photo/reel feeds — into a single, calm, good-looking site you run yourself. It is not a social network and not a multi-user platform: it is a **personal broadcast home**, which is what makes it small enough to actually self-host well.
 
-> **Status: Phase 0 complete** — the foundation is built and verified end to end against a real Postgres. See [docs/PHASE-0.md](docs/PHASE-0.md) for the evidence log and the places where reality disagreed with the plan. There is no media pipeline yet, so it is not usable as a media site.
+> **Status: Phase 1 in progress** — the media pipeline works end to end: an upload becomes a published, playable HLS video, produced by a worker that is running now. What remains is the web half (upload endpoint, watch page, library). Evidence logs: [docs/PHASE-0.md](docs/PHASE-0.md) and [docs/PHASE-1.md](docs/PHASE-1.md), both of which record where reality disagreed with the plan.
 
 ## Why it exists
 
@@ -39,7 +39,7 @@ A working mockup is in [`docs/design-preview.html`](docs/design-preview.html) �
 | Phase | What lands |
 | --- | --- |
 | **0 — Foundation** ✅ | Monorepo, design tokens, Postgres-backed theming, the federation seams, compose stack, setup wizard, doctor |
-| 1 — Video core | Resumable upload → remux-or-transcode → HLS → player → library |
+| 1 — Video core | ✅ probe + remux-or-transcode + HLS + worker · ⏳ upload endpoint, watch page, library |
 | 2 — Admin & theming | Setup wizard UI, passkeys, theme editor with contrast guardrails |
 | 3 — Photos, reels & feed | Image pipeline, blur-up placeholders, the mixed masonry feed |
 | 4 — Live *(optional profile)* | MediaMTX, WHEP with LL-HLS fallback, ephemeral chat, record → VOD |
@@ -47,7 +47,8 @@ A working mockup is in [`docs/design-preview.html`](docs/design-preview.html) �
 | 6 — Comfort & polish | Search, playlists, feeds, embeds, stats-lite |
 | 7 — Release hardening | Tested backup/restore, N-1 upgrade path, multi-arch images |
 
-A site you would actually use daily arrives at the end of **Phase 1**.
+A site you would actually use daily arrives at the end of **Phase 1**, which is most of
+the way there: the pipeline that turns a file into a streamable video is done and verified.
 
 ## Repository layout
 
