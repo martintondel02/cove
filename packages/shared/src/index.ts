@@ -12,7 +12,7 @@ export {
   webFingerSubject,
   webFingerUrl,
   type UriKind,
-} from "./ids";
+} from "./ids.ts";
 
 export {
   AS_PUBLIC,
@@ -23,7 +23,7 @@ export {
   visibilityToAudience,
   type Audience,
   type Visibility,
-} from "./visibility";
+} from "./visibility.ts";
 
 export {
   KIND_ASPECT,
@@ -32,7 +32,7 @@ export {
   isPostKind,
   type MediaRole,
   type PostKind,
-} from "./content";
+} from "./content.ts";
 
 export {
   EnvError,
@@ -41,4 +41,4 @@ export {
   loadEnv,
   type Env,
   type PowerPreset,
-} from "./env";
+} from "./env.ts";

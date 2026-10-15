@@ -11,8 +11,8 @@
  */
 import { z } from "zod";
 
-import { normalizeSiteUrl } from "./ids";
-import { VISIBILITIES } from "./visibility";
+import { normalizeSiteUrl } from "./ids.ts";
+import { VISIBILITIES } from "./visibility.ts";
 
 export const POWER_PRESETS = ["remux-first", "low-power", "balanced", "quality"] as const;
 export type PowerPreset = (typeof POWER_PRESETS)[number];
@@ -40,6 +40,25 @@ const handle = z
 
 const nonEmptySecret = z.string().min(32, "must be at least 32 characters — generate one with `openssl rand -hex 32`");
 
+/**
+ * Environment booleans, parsed explicitly.
+ *
+ * Deliberately NOT `z.coerce.boolean()`. That coerces with `Boolean(value)`, and
+ * `Boolean("false")` is `true` — so `COVE_LIVE_ENABLED=false` would switch live
+ * streaming ON and `COVE_FEDERATION_ENABLED=false` would open the inbox. Silent
+ * inversion of a feature flag is the worst kind of config bug: everything looks
+ * right, and the behaviour is the opposite of what the file says.
+ *
+ * Only conventional affirmative strings count as true; anything else is false.
+ */
+const booleanish = z
+  .union([z.boolean(), z.string()])
+  .transform((value) =>
+    typeof value === "boolean"
+      ? value
+      : ["true", "1", "yes", "on"].includes(value.trim().toLowerCase()),
+  );
+
 const rawEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
@@ -62,11 +81,11 @@ const rawEnvSchema = z.object({
   COVE_DATA_DIR: z.string().trim().min(1).default("/data"),
   COVE_MIN_FREE_MB: z.coerce.number().int().min(0).default(2048),
 
-  COVE_LIVE_ENABLED: z.coerce.boolean().default(false),
+  COVE_LIVE_ENABLED: booleanish.default(false),
   MTX_WEBRTCADDITIONALHOSTS: z.string().trim().default(""),
 
-  COVE_FEDERATION_ENABLED: z.coerce.boolean().default(false),
-  COVE_FEDERATION_ALLOW_REPLIES: z.coerce.boolean().default(false),
+  COVE_FEDERATION_ENABLED: booleanish.default(false),
+  COVE_FEDERATION_ALLOW_REPLIES: booleanish.default(false),
 
   COVE_VISIBILITY: z.enum(VISIBILITIES).default("public"),
 });

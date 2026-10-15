@@ -138,19 +138,56 @@ port_in_use() {
   return 1
 }
 
-# Only complain about 80/443 if something *else* already holds them. If our own
-# stack is up, holding them is correct.
-for p in 80 443; do
+# Whether Cove's own stack is running. `ps` alone is not enough: podman-compose
+# prints a table *header* even with zero containers, so a grep for any character
+# matched and doctor cheerfully reported the stack as up when nothing existed.
+# `ps -q` prints ids only, and nothing at all when there is nothing.
+RUNNING_IDS=""
+if [ -n "$COMPOSE_CMD" ]; then
+  RUNNING_IDS="$($COMPOSE_CMD ps -q 2>/dev/null | tr -d '\r')"
+fi
+
+# Probe the ports Cove will actually publish on the host. These are configurable
+# and default to unprivileged ports — see the rootless check below.
+HTTP_PORT="${COVE_HTTP_PORT:-8080}"
+HTTPS_PORT="${COVE_HTTPS_PORT:-8443}"
+
+for p in "$HTTP_PORT" "$HTTPS_PORT"; do
   if port_in_use "$p"; then
-    if [ -n "$COMPOSE_CMD" ] && $COMPOSE_CMD ps --status running 2>/dev/null | grep -q caddy; then
-      ok "port $p held by Cove's own caddy"
+    if [ -n "$RUNNING_IDS" ]; then
+      ok "port $p in use (Cove's stack is running)"
     else
-      bad "port $p is already in use" "Stop whatever holds it, or change the caddy ports in compose.yaml."
+      bad "port $p is already in use" \
+          "Stop whatever holds it, or set COVE_HTTP_PORT / COVE_HTTPS_PORT in .env."
     fi
   else
     ok "port $p is free"
   fi
 done
+
+# Rootless Podman cannot bind privileged ports. This is the most likely reason a
+# first `compose up` fails on Fedora, and the error podman emits ("rootlessport
+# cannot expose privileged port 80") does not say how to fix it.
+IS_ROOTLESS="false"
+if [ "$RUNTIME" = "podman" ]; then
+  case "$(podman info --format '{{.Host.Security.Rootless}}' 2>/dev/null)" in
+    true) IS_ROOTLESS="true" ;;
+  esac
+fi
+
+if [ "$IS_ROOTLESS" = "true" ]; then
+  for p in "$HTTP_PORT" "$HTTPS_PORT"; do
+    if [ "$p" -lt 1024 ] 2>/dev/null; then
+      bad "rootless Podman cannot bind port $p" \
+          "Raise the unprivileged port floor, then re-run:
+   sudo sysctl -w net.ipv4.ip_unprivileged_port_start=$p
+   echo 'net.ipv4.ip_unprivileged_port_start=$p' | sudo tee /etc/sysctl.d/99-cove.conf
+...or keep the default unprivileged ports (${HTTP_PORT}/${HTTPS_PORT} unless changed),
+or run the stack rootful."
+      break
+    fi
+  done
+fi
 
 if [ "${COVE_LIVE_ENABLED:-false}" = "true" ]; then
   section "Live streaming ports (COVE_LIVE_ENABLED=true)"
@@ -262,19 +299,17 @@ if command -v getenforce >/dev/null 2>&1; then
 fi
 
 # ──────────────────────────────── connectivity ───────────────────────────────
-if [ -n "$COMPOSE_CMD" ] && $COMPOSE_CMD ps 2>/dev/null | grep -q .; then
+if [ -n "$RUNNING_IDS" ]; then
   section "Running stack"
-  if $COMPOSE_CMD ps 2>/dev/null | grep -q db; then
-    ok "db service present"
-  fi
+  printf '  %s%d container(s) up%s\n' "$C_DIM" "$(printf '%s\n' "$RUNNING_IDS" | wc -l | tr -d ' ')" "$C_0"
   if command -v curl >/dev/null 2>&1; then
-    if curl -fsS --max-time 5 http://localhost:3000/healthz >/dev/null 2>&1; then
-      ok "web responds on :3000"
-    elif curl -fsS --max-time 5 http://localhost/healthz >/dev/null 2>&1; then
-      ok "web responds through caddy on :80"
+    if curl -fsS --max-time 5 "http://localhost:${HTTP_PORT}/healthz" >/dev/null 2>&1; then
+      ok "web responds through caddy on :${HTTP_PORT}"
+    elif curl -fsS --max-time 5 http://localhost:3000/healthz >/dev/null 2>&1; then
+      ok "web responds directly on :3000 (dev server)"
     else
-      warn "stack is running but the web app did not answer" \
-           "Check logs: $COMPOSE_CMD logs web"
+      warn "containers are up but the web app did not answer" \
+           "It may still be starting. Check logs: $COMPOSE_CMD logs web"
     fi
   fi
 fi

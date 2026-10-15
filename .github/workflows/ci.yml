@@ -33,6 +33,10 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Node's built-in runner, no test framework. Runs the TypeScript directly.
+      - name: Test
+        run: pnpm test
+
       - name: Build
         run: pnpm build
 
@@ -77,6 +81,26 @@ jobs:
 
       - name: Validate live overlay
         run: docker compose -f compose.yaml -f compose.live.yaml --profile live config --quiet
+
+      # `compose config` validates the compose file but says nothing about the
+      # Caddyfile, which is a separate language with its own parse errors. A
+      # Caddyfile bug therefore ships green and only surfaces as a crash-looping
+      # container at first run — which is exactly what happened once.
+      - name: Validate Caddyfile (localhost, no ACME email)
+        run: |
+          docker run --rm \
+            -e COVE_SITE_ADDRESS=http://localhost \
+            -e COVE_ACME_EMAIL= \
+            -v "$PWD/deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Validate Caddyfile (public domain with TLS)
+        run: |
+          docker run --rm \
+            -e COVE_SITE_ADDRESS=https://cove.example.com \
+            -e COVE_ACME_EMAIL=me@example.com \
+            -v "$PWD/deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
   doctor:
     name: Doctor runs clean

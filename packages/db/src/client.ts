@@ -12,7 +12,7 @@ import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 
-import * as schema from "./schema";
+import * as schema from "./schema.ts";
 
 export type Database = NodePgDatabase<typeof schema>;
 

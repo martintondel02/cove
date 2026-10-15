@@ -12,8 +12,8 @@
  */
 import { inArray } from "drizzle-orm";
 
-import { getDb, type Database } from "./client";
-import { siteSettings } from "./schema";
+import { getDb, type Database } from "./client.ts";
+import { siteSettings } from "./schema.ts";
 
 /** Every setting key Cove understands. */
 export const SETTING_KEYS = {

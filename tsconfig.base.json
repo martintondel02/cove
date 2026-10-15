@@ -22,6 +22,16 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
 
+    // Workspace packages import each other with explicit `.ts` extensions
+    // (`from "./ids.ts"`). That is the one style both consumers accept:
+    //   • Node's ESM resolver requires a real path and does no extension
+    //     guessing, so extensionless imports fail when running a package
+    //     directly (tests, and the worker).
+    //   • Turbopack resolves `./ids.ts` as a literal file, whereas `./ids.js`
+    //     fails because the file on disk is `ids.ts`.
+    // Safe because every package is noEmit — nothing is compiled to JS here.
+    "allowImportingTsExtensions": true,
+
     // TypeScript 7 defaults `types` to an EMPTY array, so without this `process`,
     // `Buffer` and friends disappear from every package. It is a deliberate
     // change upstream (opt in to globals) and an easy one to trip over.

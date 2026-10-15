@@ -106,7 +106,7 @@ printf '\n%sIdentity%s\n' "$C_B" "$C_0"
 note "These three values decide your federated identity (@handle@domain),"
 note "which is why they are asked first — they are permanent once followed."
 
-DEFAULT_URL="http://localhost"
+DEFAULT_URL="http://localhost:${COVE_HTTP_PORT:-8080}"
 SITE_URL="$(ask COVE_SITE_URL "Public URL of your site?" "$DEFAULT_URL")"
 case "$SITE_URL" in
   http://*|https://*) ;;

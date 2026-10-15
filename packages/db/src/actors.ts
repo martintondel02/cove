@@ -22,8 +22,8 @@ import {
 } from "@cove/shared";
 import { eq } from "drizzle-orm";
 
-import { getDb, type Database } from "./client";
-import { actors, type Actor } from "./schema";
+import { getDb, type Database } from "./client.ts";
+import { actors, type Actor } from "./schema.ts";
 
 export interface OwnerActorInput {
   readonly siteUrl: string;

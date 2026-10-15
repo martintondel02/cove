@@ -8,8 +8,8 @@
  */
 import { and, desc, eq, isNotNull, isNull, ne } from "drizzle-orm";
 
-import { getDb, type Database } from "./client";
-import { posts, type Post } from "./schema";
+import { getDb, type Database } from "./client.ts";
+import { posts, type Post } from "./schema.ts";
 
 /**
  * Posts that may be announced to the fediverse.

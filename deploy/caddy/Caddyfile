@@ -8,9 +8,19 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 {
-	email {$COVE_ACME_EMAIL}
-	# Caddy's own admin endpoint is not needed once running.
+	# Caddy's admin API is not needed once running, and leaving it on just opens
+	# another local socket.
 	admin off
+
+	# An ACME contact address is OPTIONAL, and it must be omitted entirely rather
+	# than left empty. `email` with no argument is a *parse error* in Caddy
+	# ("wrong argument count or unexpected line ending after 'email'"), so writing
+	# `email {$COVE_ACME_EMAIL}` with an unset variable makes the container
+	# crash-loop on its restart policy: hundreds of restarts, exit code 1, and no
+	# obvious cause in the logs. To receive certificate-expiry notices, uncomment
+	# the next line and put a real address in it:
+	#
+	#	email you@example.com
 }
 
 {$COVE_SITE_ADDRESS} {

@@ -7,20 +7,20 @@ export {
   schema,
   type Database,
   type DbOptions,
-} from "./client";
+} from "./client.ts";
 
 export {
   detectIdentityDrift,
   ensureOwnerActor,
   getActorByHandle,
   type OwnerActorInput,
-} from "./actors";
+} from "./actors.ts";
 
 export {
   countFederatedPosts,
   getPostBySlug,
   listFederatedPosts,
-} from "./posts";
+} from "./posts.ts";
 
 export {
   DEFAULT_SETTINGS,
@@ -32,6 +32,6 @@ export {
   setSettings,
   type SettingKey,
   type SettingsMap,
-} from "./settings";
+} from "./settings.ts";
 
-export * from "./schema";
+export * from "./schema.ts";

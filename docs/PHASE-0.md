@@ -132,16 +132,88 @@ overlay), and *Doctor runs clean* (which runs `setup.sh --yes` and then
    preset as the default, because `:root` and `[data-theme]` tie on specificity
    and `@import` hoisted the presets above `:root`. Fixed with an explicit ladder:
    `:where(:root)` < `[data-theme]` < `html[data-theme]`.
+10. **Postgres 18 changed its data directory layout.** Mounting a volume at
+    `/var/lib/postgresql/data` — correct for every earlier major — makes the
+    entrypoint refuse to start: *"there appears to be PostgreSQL data in
+    /var/lib/postgresql/data (unused mount/volume)"*. Mount at
+    `/var/lib/postgresql` instead. The container then sat in
+    "Initialized (starting)" for twelve minutes with web and caddy never
+    starting, because they wait on `service_healthy`.
+11. **Rootless Podman cannot bind port 80.** `net.ipv4.ip_unprivileged_port_start`
+    is 1024, so publishing 80 fails with *"rootlessport cannot expose privileged
+    port 80"* — and caddy alone fails while the rest of the stack comes up fine.
+    The host ports are now configurable and default to **8080/8443**, so an
+    ordinary user needs no system changes; `doctor` detects the privileged-port
+    case and prints the exact `sysctl` fix.
+12. **`email` with no argument is a Caddy *parse error*.** Writing
+    `email {$COVE_ACME_EMAIL}` with an unset variable made caddy exit 1 and
+    crash-loop **619 times**, with no error in `podman logs` beyond
+    "using config from file". Direct validation showed it:
+    *"parsing caddyfile tokens for 'email': wrong argument count"*. The directive
+    is now omitted with a comment explaining how to add a real one. CI did not
+    catch this because `compose config` validates compose files, not Caddyfiles —
+    so CI now runs `caddy validate` against the real image, in both localhost and
+    public-domain modes.
+13. **`z.coerce.boolean()` silently inverted every feature flag.** It coerces via
+    `Boolean(value)`, and `Boolean("false")` is `true` — so
+    `COVE_FEDERATION_ENABLED=false` **opened the inbox** and
+    `COVE_LIVE_ENABLED=false` switched live streaming on. Caught only because an
+    endpoint returned 501 where 403 was expected. Replaced with explicit parsing
+    (only `true/1/yes/on` are true) and covered by 13 regression tests run by
+    Node's built-in test runner — no framework, no dependency. Config parsing
+    fails silently and in the opposite direction, so it deserves tests.
+14. **`.js` is the wrong extension to standardise on.** Node's ESM resolver does
+    no extension guessing, so extensionless imports fail when running a package
+    directly; Turbopack in turn rejects `./thing.js` because the file on disk is
+    `thing.ts`. Workspace packages therefore import with **explicit `.ts`
+    extensions** — the one form both consumers accept. Needs
+    `allowImportingTsExtensions`, which is safe because every package is noEmit.
+15. **Podman's layer cache served a stale `COPY . .`.** After a source change,
+    `podman compose up -d --build` reported success but the image still contained
+    the old code, so the bug appeared unfixed. A `--no-cache` rebuild fixed it.
+    Worth knowing before spending an hour re-debugging a fix that is already
+    correct: when a container misbehaves after an edit, verify the artifact
+    before re-reading the source.
+
+## Verified through the running stack
+
+With `podman-compose` installed, `setup.sh` then `podman compose up -d` brings up
+`db` + `web` + `caddy`, and the following pass **through Caddy on :8080**:
+
+| Check | Result |
+| --- | --- |
+| `/healthz` | 200, `config ok`, `database ok` |
+| `/` | 200, `data-theme="cove"`, `cove-masonry` feed, stylesheet linked |
+| CSS asset | 200, contains `var(--text-muted)` (tokens survive to the browser) |
+| `/@me` + `Accept: text/html` | 200, the human profile page |
+| `/@me` + `Accept: application/activity+json` | 200, AS2 `Person`, `id: http://localhost:8080/@me` |
+| WebFinger `acct:me@localhost:8080` | 200, `self → http://localhost:8080/@me` |
+| `/@me/outbox` | 200, `OrderedCollection` |
+| `POST /@me/inbox` | **403** — broadcast-first, with the opt-in hint |
+| Security headers | `X-Content-Type-Options`, `Strict-Transport-Security`, `Referrer-Policy`; `Server` suppressed |
+| Proxy behaviour | `Via: 1.1 Caddy`, all three containers healthy |
+
+The inbox gate was then exercised in all three flag combinations, which proves the
+boolean parsing actually works in both directions rather than merely defaulting:
+
+| `FEDERATION_ENABLED` | `ALLOW_REPLIES` | Response |
+| --- | --- | --- |
+| false | false | 403 "does not accept inbound federation activities" |
+| true | false | 403 "Inbound replies are disabled" |
+| true | true | 501 "enabled but not implemented yet" (honest — Fedify is Phase 5) |
 
 ## Known gaps, deliberately
 
-- `compose.yaml` has not been run as a stack, because this machine has no
-  compose provider (`doctor` detects it and `setup.sh` prints the fix). The
-  services were each verified individually: Postgres, migrations, and the
-  production server were all exercised together; only Caddy is unexercised.
-- No keypair, so the actor document has no `publicKey`. Remote servers will
-  fetch the actor but reject *deliveries* until Phase 5 adds HTTP signatures.
-  This is the one real gap in the federation identity.
-- Caddy is unrun, so automatic TLS is unverified.
+- No keypair, so the actor document has no `publicKey`. Remote servers will fetch
+  the actor but reject *deliveries* until Phase 5 adds HTTP signatures. This is
+  the one real gap in the federation identity.
+- **Automatic TLS is unverified** because it needs a real domain. The Caddyfile
+  validates in `https://` mode, but no certificate has actually been issued.
+- The `Dockerfile` `HEALTHCHECK` is ignored under Podman, which builds OCI images
+  by default (*"HEALTHCHECK is not supported for OCI image format"*). The compose
+  `healthcheck` covers it and is what actually runs; keep both, since Docker uses
+  the image one.
 - `apps/worker` and `packages/media` are empty placeholders; they arrive with
   Phase 1.
+- No tests beyond environment parsing — the federation endpoints were verified by
+  hand against a live database rather than by an automated suite.
